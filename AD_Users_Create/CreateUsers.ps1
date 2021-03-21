@@ -1,4 +1,4 @@
-﻿Function CreateUser{
+﻿Function CreateUser {
 
     <#
         .SYNOPSIS
@@ -40,38 +40,40 @@
         [Parameter(Mandatory = $false,
             Position = 1,
             HelpMessage = 'Supply a result from get-addomain')]
-            [Object[]]$Domain,
+        [Object[]]$Domain,
         [Parameter(Mandatory = $false,
             Position = 2,
             HelpMessage = 'Supply a result from get-adorganizationalunit -filter *')]
-            [Object[]]$OUList,
+        [Object[]]$OUList,
         [Parameter(Mandatory = $false,
             Position = 3,
             HelpMessage = 'Supply the script directory for where this script is stored')]
         [string]$ScriptDir
     )
     
-        if(!$PSBoundParameters.ContainsKey('Domain')){
-                $setDC = (Get-ADDomain).pdcemulator
-                $dnsroot = (get-addomain).dnsroot
-            }
-            else {
-                $setDC = $Domain.pdcemulator
-                $dnsroot = $Domain.dnsroot
-            }
-        if (!$PSBoundParameters.ContainsKey('OUList')){
-            $OUsAll = get-adobject -Filter {objectclass -eq 'organizationalunit'} -ResultSetSize 300
-        }else {
-            $OUsAll = $OUList
+    if (!$PSBoundParameters.ContainsKey('Domain')) {
+        $setDC = (Get-ADDomain).pdcemulator
+        $dnsroot = (get-addomain).dnsroot
+    }
+    else {
+        $setDC = $Domain.pdcemulator
+        $dnsroot = $Domain.dnsroot
+    }
+    if (!$PSBoundParameters.ContainsKey('OUList')) {
+        $OUsAll = get-adobject -Filter { objectclass -eq 'organizationalunit' } -ResultSetSize 300
+    }
+    else {
+        $OUsAll = $OUList
+    }
+    if (!$PSBoundParameters.ContainsKey('ScriptDir')) {
+        function Get-ScriptDirectory {
+            Split-Path -Parent $PSCommandPath
         }
-        if (!$PSBoundParameters.ContainsKey('ScriptDir')){
-            function Get-ScriptDirectory {
-                Split-Path -Parent $PSCommandPath
-            }
-            $scriptPath = Get-ScriptDirectory
-        }else{
-            $scriptpath = $scriptdir
-        }
+        $scriptPath = Get-ScriptDirectory
+    }
+    else {
+        $scriptpath = $scriptdir
+    }
     
     
     
@@ -116,30 +118,30 @@
            http://blog.simonw.se/powershell-generating-random-password-for-active-directory/
        
         #>
-        [CmdletBinding(DefaultParameterSetName='FixedLength',ConfirmImpact='None')]
+        [CmdletBinding(DefaultParameterSetName = 'FixedLength', ConfirmImpact = 'None')]
         [OutputType([String])]
         Param
         (
             # Specifies minimum password length
-            [Parameter(Mandatory=$false,
-                       ParameterSetName='RandomLength')]
-            [ValidateScript({$_ -gt 0})]
+            [Parameter(Mandatory = $false,
+                ParameterSetName = 'RandomLength')]
+            [ValidateScript( { $_ -gt 0 })]
             [Alias('Min')] 
             [int]$MinPasswordLength = 12,
             
             # Specifies maximum password length
-            [Parameter(Mandatory=$false,
-                       ParameterSetName='RandomLength')]
-            [ValidateScript({
-                    if($_ -ge $MinPasswordLength){$true}
-                    else{Throw 'Max value cannot be lesser than min value.'}})]
+            [Parameter(Mandatory = $false,
+                ParameterSetName = 'RandomLength')]
+            [ValidateScript( {
+                    if ($_ -ge $MinPasswordLength) { $true }
+                    else { Throw 'Max value cannot be lesser than min value.' } })]
             [Alias('Max')]
             [int]$MaxPasswordLength = 20,
     
             # Specifies a fixed password length
-            [Parameter(Mandatory=$false,
-                       ParameterSetName='FixedLength')]
-            [ValidateRange(1,2147483647)]
+            [Parameter(Mandatory = $false,
+                ParameterSetName = 'FixedLength')]
+            [ValidateRange(1, 2147483647)]
             [int]$PasswordLength = 8,
             
             # Specifies an array of strings containing charactergroups from which the password will be generated.
@@ -151,11 +153,11 @@
             [String] $FirstChar,
             
             # Specifies number of passwords to generate.
-            [ValidateRange(1,2147483647)]
+            [ValidateRange(1, 2147483647)]
             [int]$Count = 1
         )
         Begin {
-            Function Get-Seed{
+            Function Get-Seed {
                 # Generate a seed for randomization
                 $RandomBytes = New-Object -TypeName 'System.Byte[]' 4
                 $Random = New-Object -TypeName 'System.Security.Cryptography.RNGCryptoServiceProvider'
@@ -164,18 +166,17 @@
             }
         }
         Process {
-            For($iteration = 1;$iteration -le $Count; $iteration++){
+            For ($iteration = 1; $iteration -le $Count; $iteration++) {
                 $Password = @{}
                 # Create char arrays containing groups of possible chars
                 [char[][]]$CharGroups = $InputStrings
     
                 # Create char array containing all chars
-                $AllChars = $CharGroups | ForEach-Object {[Char[]]$_}
+                $AllChars = $CharGroups | ForEach-Object { [Char[]]$_ }
     
                 # Set password length
-                if($PSCmdlet.ParameterSetName -eq 'RandomLength')
-                {
-                    if($MinPasswordLength -eq $MaxPasswordLength) {
+                if ($PSCmdlet.ParameterSetName -eq 'RandomLength') {
+                    if ($MinPasswordLength -eq $MaxPasswordLength) {
                         # If password length is set, use set length
                         $PasswordLength = $MinPasswordLength
                     }
@@ -186,29 +187,29 @@
                 }
     
                 # If FirstChar is defined, randomize first char in password from that string.
-                if($PSBoundParameters.ContainsKey('FirstChar')){
-                    $Password.Add(0,$FirstChar[((Get-Seed) % $FirstChar.Length)])
+                if ($PSBoundParameters.ContainsKey('FirstChar')) {
+                    $Password.Add(0, $FirstChar[((Get-Seed) % $FirstChar.Length)])
                 }
                 # Randomize one char from each group
-                Foreach($Group in $CharGroups) {
-                    if($Password.Count -lt $PasswordLength) {
+                Foreach ($Group in $CharGroups) {
+                    if ($Password.Count -lt $PasswordLength) {
                         $Index = Get-Seed
-                        While ($Password.ContainsKey($Index)){
+                        While ($Password.ContainsKey($Index)) {
                             $Index = Get-Seed                        
                         }
-                        $Password.Add($Index,$Group[((Get-Seed) % $Group.Count)])
+                        $Password.Add($Index, $Group[((Get-Seed) % $Group.Count)])
                     }
                 }
     
                 # Fill out with chars from $AllChars
-                for($i=$Password.Count;$i -lt $PasswordLength;$i++) {
+                for ($i = $Password.Count; $i -lt $PasswordLength; $i++) {
                     $Index = Get-Seed
-                    While ($Password.ContainsKey($Index)){
+                    While ($Password.ContainsKey($Index)) {
                         $Index = Get-Seed                        
                     }
-                    $Password.Add($Index,$AllChars[((Get-Seed) % $AllChars.Count)])
+                    $Password.Add($Index, $AllChars[((Get-Seed) % $AllChars.Count)])
                 }
-                Write-Output -InputObject $(-join ($Password.GetEnumerator() | Sort-Object -Property Name | Select-Object -ExpandProperty Value))
+                Write-Output -InputObject $( -join ($Password.GetEnumerator() | Sort-Object -Property Name | Select-Object -ExpandProperty Value))
             }
         }
     }
@@ -226,25 +227,27 @@
     
     
     
-    $accountType = 1..100|get-random 
-    if($accountType -le 10){ # X percent chance of being a service account
-    #service
-    $nameSuffix = "SA"
-    $description = 'Created with secframe.com/badblood.'
-    #removing do while loop and making random number range longer, sorry if the account is there already
-    # this is so that I can attempt to import multithreading on user creation
+    $accountType = 1..100 | get-random 
+    if ($accountType -le 10) {
+        # X percent chance of being a service account
+        #service
+        $nameSuffix = "SA"
+        $description = 'Created with secframe.com/badblood.'
+        #removing do while loop and making random number range longer, sorry if the account is there already
+        # this is so that I can attempt to import multithreading on user creation
     
-        $name = ""+ (Get-Random -Minimum 100 -Maximum 9999999999) + "$nameSuffix"
+        $name = "" + (Get-Random -Minimum 100 -Maximum 9999999999) + "$nameSuffix"
         
         
-    }else{
-        $surname = get-content($scriptpath + '\Names\familynames-usa-top1000.txt')|get-random
-    $genderpreference = 0,1|get-random
-    if ($genderpreference -eq 0){$givenname = get-content($scriptpath + '\Names\femalenames-usa-top1000.txt')|get-random}else{$givenname = get-content($scriptpath + '\Names\malenames-usa-top1000.txt')|get-random}
-    $name = $givenname+"_"+$surname
+    }
+    else {
+        $surname = get-content($scriptpath + '\Names\familynames-usa-top1000.txt') | get-random
+        $genderpreference = 0, 1 | get-random
+        if ($genderpreference -eq 0) { $givenname = get-content($scriptpath + '\Names\femalenames-usa-top1000.txt') | get-random }else { $givenname = get-content($scriptpath + '\Names\malenames-usa-top1000.txt') | get-random }
+        $name = $givenname + "_" + $surname
     }
     
-        $departmentnumber = [convert]::ToInt32('9999999') 
+    $departmentnumber = [convert]::ToInt32('9999999') 
         
         
     #Need to figure out how to do the L attribute
@@ -253,12 +256,13 @@
     #======================================================================
     # 
     
-    $passwordinDesc = 1..1000|get-random
+    $passwordinDesc = 1..1000 | get-random
         
-        $pwd = New-SWRandomPassword -MinPasswordLength 22 -MaxPasswordLength 25
-            if ($passwordinDesc -lt 10) { 
-                $description = 'Just so I dont forget my password is ' + $pwd 
-            }else{}
+    $pwd = New-SWRandomPassword -MinPasswordLength 22 -MaxPasswordLength 25
+    if ($passwordinDesc -lt 10) { 
+        $description = 'Just so I dont forget my password is ' + $pwd 
+    }
+    else {}
     new-aduser -server $setdc  -Description $Description -DisplayName $name -name $name -SamAccountName $name -Surname $name -Enabled $true -Path $ouLocation -AccountPassword (ConvertTo-SecureString ($pwd) -AsPlainText -force)
     
     
@@ -273,14 +277,14 @@
     #===============================
     
     $upn = $name + '@' + $dnsroot
-    try{Set-ADUser -Identity $name -UserPrincipalName "$upn" }
-    catch{}
+    try { Set-ADUser -Identity $name -UserPrincipalName "$upn" }
+    catch {}
     
     ################################
     #End Create User Objects
     ################################
     
-    }
+}
     
     
     
